@@ -1,0 +1,16 @@
+{
+  "name": "Adonde y Que",
+  "short_name": "AyQ",
+  "description": "Sistema de gestión de viajes grupales — Adonde y Que",
+  "start_url": "/calendario",
+  "display": "standalone",
+  "background_color": "#F0EEE9",
+  "theme_color": "#18181A",
+  "icons": [
+    {
+      "src": "/ayq-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
