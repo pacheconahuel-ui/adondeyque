@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <PasswordGate>
       <div className="min-h-screen flex flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-[#18181A] text-white px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-40 bg-[#18181A] text-white px-4 py-3 flex items-center justify-between border-b-2 border-primary">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/ayq-icon.png" alt="Adonde y Que" className="w-6 h-6 rounded-full" />
@@ -65,8 +65,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             const active = pathname.startsWith(href)
             return (
               <Link key={href} href={href} className={cn(
-                'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
-                active ? 'text-amber-600' : 'text-gray-400'
+                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors',
+                active ? 'text-amber-700 bg-accent' : 'text-gray-400'
               )}>
                 <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
                 <span className="text-[10px] font-medium">{label}</span>

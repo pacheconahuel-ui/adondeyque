@@ -5,6 +5,7 @@ import { supabase, type Pasajero, type Viaje, type Actividad } from '@/lib/supab
 import { formatCurrency, formatDateShort, cn } from '@/lib/utils'
 import BottomSheet from '@/components/BottomSheet'
 import ErrorBanner from '@/components/ErrorBanner'
+import EmptyState from '@/components/EmptyState'
 import { Input, Campo } from '@/components/FormField'
 import {
   Plus, X, Phone, Search, RefreshCw, MapPin, CreditCard, TrendingUp,
@@ -19,6 +20,11 @@ const ESTADO_COLORS: Record<EstadoAsignacion, string> = {
   confirmado: 'bg-green-50 text-green-700 border-green-200',
   en_espera: 'bg-amber-50 text-amber-700 border-amber-200',
   cancelado: 'bg-red-50 text-red-600 border-red-200',
+}
+const ESTADO_STRIPE: Record<EstadoAsignacion, string> = {
+  confirmado: 'border-l-green-400',
+  en_espera: 'border-l-amber-400',
+  cancelado: 'border-l-red-400',
 }
 
 type ViajeHistorial = {
@@ -238,15 +244,13 @@ function PasajerosContent() {
       </div>
 
       {filtrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2DFD8] p-10 text-center">
-          <div className="text-5xl mb-4">🧳</div>
-          <h2 className="text-base font-semibold text-[#18181A] mb-2">
-            {pasajeros.length === 0 ? 'Todavía no hay pasajeros' : 'Sin resultados'}
-          </h2>
-          <p className="text-sm text-gray-400">
-            {pasajeros.length === 0 ? 'Creá el primero con el botón de arriba.' : 'Probá con otro nombre o DNI.'}
-          </p>
-        </div>
+        pasajeros.length === 0 ? (
+          <EmptyState title="Todavía no hay pasajeros" description="Creá el primero con el botón de arriba." />
+        ) : (
+          <div className="text-center py-16 text-gray-400">
+            <div className="text-sm">Sin resultados para &quot;{search}&quot;</div>
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-2">
           {filtrados.map(p => (
@@ -329,7 +333,7 @@ function PasajerosContent() {
               ) : (
                 <div className="flex flex-col gap-2">
                   {historial.map(h => (
-                    <div key={h.viaje_pasajero_id} className="bg-[#F0EEE9] rounded-xl p-3">
+                    <div key={h.viaje_pasajero_id} className={cn('bg-[#F0EEE9] rounded-xl p-3 border-l-4', ESTADO_STRIPE[h.estado])}>
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <span className="text-sm font-medium">{h.viaje.nombre}</span>
                         <span className={cn('text-xs px-2 py-0.5 rounded-full border shrink-0', ESTADO_COLORS[h.estado])}>

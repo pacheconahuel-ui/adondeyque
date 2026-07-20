@@ -6,6 +6,7 @@ import { formatCurrency, formatDateShort } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import BottomSheet from '@/components/BottomSheet'
 import ErrorBanner from '@/components/ErrorBanner'
+import EmptyState from '@/components/EmptyState'
 import { Input, Select, Campo } from '@/components/FormField'
 import {
   Plus, Users, MapPin, ChevronRight, X, Phone, Search, UserPlus, RefreshCw,
@@ -22,6 +23,12 @@ const ESTADO_VIAJE_COLORS: Record<EstadoViaje, string> = {
   confirmado: 'bg-green-50 text-green-700 border-green-200',
   en_espera: 'bg-amber-50 text-amber-700 border-amber-200',
   cancelado: 'bg-red-50 text-red-600 border-red-200',
+}
+const ESTADO_VIAJE_STRIPE: Record<EstadoViaje, string> = {
+  borrador: 'border-l-gray-300',
+  confirmado: 'border-l-green-400',
+  en_espera: 'border-l-amber-400',
+  cancelado: 'border-l-red-400',
 }
 const ESTADO_ASIG_LABELS: Record<EstadoAsignacion, string> = {
   confirmado: 'Confirmado', en_espera: 'En espera', cancelado: 'Cancelado',
@@ -234,11 +241,7 @@ export default function GruposPage() {
       </div>
 
       {viajes.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2DFD8] p-10 text-center">
-          <div className="text-5xl mb-4">🚌</div>
-          <h2 className="text-base font-semibold text-[#18181A] mb-2">Todavía no hay viajes</h2>
-          <p className="text-sm text-gray-400">Creá tu primer viaje grupal con el botón de arriba.</p>
-        </div>
+        <EmptyState title="Todavía no hay viajes" description="Creá tu primer viaje grupal con el botón de arriba." />
       ) : (
         <div className="flex flex-col gap-3">
           {viajes.map(viaje => {
@@ -248,7 +251,10 @@ export default function GruposPage() {
               <div
                 key={viaje.id}
                 onClick={() => abrirDetalle(viaje)}
-                className="bg-white rounded-2xl border border-[#E2DFD8] p-4 cursor-pointer hover:border-amber-300 transition-colors"
+                className={cn(
+                  'bg-white rounded-2xl border-y border-r border-[#E2DFD8] border-l-4 p-4 cursor-pointer hover:border-r-amber-300 hover:border-y-amber-300 transition-colors',
+                  ESTADO_VIAJE_STRIPE[viaje.estado]
+                )}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="font-semibold text-[#18181A] text-sm">{viaje.nombre}</span>

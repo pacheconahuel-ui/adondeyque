@@ -307,29 +307,29 @@ export default function CalendarioPage() {
                       key={fecha}
                       onClick={() => seleccionarDia(fecha)}
                       className={cn(
-                        'border-l border-[#E2DFD8] first:border-l-0 p-1.5 min-h-[104px] cursor-pointer hover:bg-[#FAFCFF] transition-colors',
+                        'border-l border-[#E2DFD8] first:border-l-0 p-2 min-h-[124px] cursor-pointer hover:bg-[#FAFCFF] transition-colors',
                         !delMes && 'bg-[#FAFAF8]',
                         acts.length > 0 && delMes && 'bg-[#FAFCFF]'
                       )}
                     >
                       <div className={cn(
-                        'text-xs font-semibold mb-1 w-5 h-5 flex items-center justify-center rounded-full',
+                        'text-xs font-semibold mb-1.5 w-6 h-6 flex items-center justify-center rounded-full',
                         esHoy ? 'bg-primary text-primary-foreground' : delMes ? 'text-[#18181A]' : 'text-gray-300'
                       )}>
                         {Number(fecha.slice(8, 10))}
                       </div>
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-1">
                         {acts.slice(0, 3).map(a => (
                           <div
                             key={a.id}
                             onClick={e => { e.stopPropagation(); setModalAct(a) }}
-                            className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground font-medium truncate hover:bg-amber-100"
+                            className="text-[10.5px] leading-snug px-1.5 py-1 rounded-md bg-accent text-accent-foreground font-medium truncate hover:bg-amber-100 transition-colors"
                           >
                             {a.actividad}
                           </div>
                         ))}
                         {acts.length > 3 && (
-                          <div className="text-[10px] text-gray-400 px-1">+{acts.length - 3} más</div>
+                          <div className="text-[10px] text-gray-400 px-1.5 font-medium">+{acts.length - 3} más</div>
                         )}
                       </div>
                     </div>

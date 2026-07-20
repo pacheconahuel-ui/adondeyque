@@ -5,10 +5,11 @@ import { supabase, type DeudaPasajero, type Pago } from '@/lib/supabase'
 import { formatCurrency, formatDateShort, cn } from '@/lib/utils'
 import BottomSheet from '@/components/BottomSheet'
 import ErrorBanner from '@/components/ErrorBanner'
+import EmptyState from '@/components/EmptyState'
 import { Input, Select, Campo } from '@/components/FormField'
 import {
   Plus, X, Phone, RefreshCw, ChevronDown, ChevronUp,
-  Paperclip, ExternalLink, Search,
+  Paperclip, ExternalLink, Search, CheckCircle2,
 } from 'lucide-react'
 
 type Metodo = Pago['metodo']
@@ -199,19 +200,25 @@ export default function CobrosPage() {
       </div>
 
       {visibles.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2DFD8] p-10 text-center">
-          <div className="text-5xl mb-4">💳</div>
-          <h2 className="text-base font-semibold text-[#18181A] mb-2">
-            {verTodos ? 'Todavía no hay pasajeros con pagos registrados' : 'Sin deudas pendientes'}
-          </h2>
-          <p className="text-sm text-gray-400">
-            {verTodos ? 'Asigná pasajeros a un viaje desde Grupos.' : 'Todos los pasajeros confirmados están al día.'}
-          </p>
-        </div>
+        verTodos ? (
+          <EmptyState title="Todavía no hay pasajeros con pagos registrados" description="Asigná pasajeros a un viaje desde Grupos." />
+        ) : (
+          <div className="bg-green-50 rounded-2xl border border-green-200 p-10 text-center">
+            <CheckCircle2 size={40} className="mx-auto mb-4 text-green-600" />
+            <h2 className="text-base font-semibold text-[#18181A] mb-2">Sin deudas pendientes</h2>
+            <p className="text-sm text-gray-500">Todos los pasajeros confirmados están al día.</p>
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-3">
           {visibles.map(d => (
-            <div key={d.viaje_pasajero_id} className="bg-white rounded-2xl border border-[#E2DFD8] overflow-hidden">
+            <div
+              key={d.viaje_pasajero_id}
+              className={cn(
+                'bg-white rounded-2xl border-y border-r border-[#E2DFD8] border-l-4 overflow-hidden',
+                d.debe > 0 ? 'border-l-red-400' : 'border-l-green-400'
+              )}
+            >
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   {pasajeroIdPorVp[d.viaje_pasajero_id] ? (
