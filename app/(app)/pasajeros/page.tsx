@@ -316,7 +316,7 @@ function PasajerosContent() {
               <button
                 type="submit"
                 disabled={guardandoEdit}
-                className="w-full border border-[#E2DFD8] text-[#18181A] rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+                className="w-full bg-[#18181A] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
               >
                 {guardandoEdit ? 'Guardando...' : 'Guardar cambios'}
               </button>

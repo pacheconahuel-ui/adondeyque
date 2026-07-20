@@ -2,9 +2,10 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { supabase, type Actividad } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, Search, Phone, MapPin, Users, TrendingUp, RefreshCw } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ChevronLeft, ChevronRight, Search, Phone, RefreshCw, X, Pencil, Trash2 } from 'lucide-react'
 import BottomSheet from '@/components/BottomSheet'
+import ErrorBanner from '@/components/ErrorBanner'
+import { Input, Campo } from '@/components/FormField'
 import { cn } from '@/lib/utils'
 
 const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -32,8 +33,22 @@ function daysInMonth(mesInicio: string): number {
 function hoyISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
+function formatPax(a: Actividad): string {
+  const partes: string[] = []
+  if (a.pax_mayor) partes.push(`${a.pax_mayor} adulto${a.pax_mayor === 1 ? '' : 's'}`)
+  if (a.pax_menor) partes.push(`${a.pax_menor} menor${a.pax_menor === 1 ? '' : 'es'}`)
+  if (a.pax_infante) partes.push(`${a.pax_infante} infante${a.pax_infante === 1 ? '' : 's'}`)
+  if (a.pax_jubilado) partes.push(`${a.pax_jubilado} jubilado${a.pax_jubilado === 1 ? '' : 's'}`)
+  return partes.length ? `${a.pax_total} (${partes.join(', ')})` : String(a.pax_total)
+}
 
 type Vista = 'semana' | 'mes'
+
+const emptyEditForm = {
+  fecha: '', actividad: '', nombre: '', hotel: '', telefono: '',
+  pax_mayor: '0', pax_menor: '0', pax_infante: '0', pax_jubilado: '0',
+  cobro: '0', costo: '0', proveedor: '', referido: '',
+}
 
 export default function CalendarioPage() {
   const [actividades, setActividades] = useState<Actividad[]>([])
@@ -45,6 +60,15 @@ export default function CalendarioPage() {
   const [fechaRef, setFechaRef] = useState(hoyISO())
   const touchStartX = useRef(0)
   const initialized = useRef(false)
+
+  const [editando, setEditando] = useState(false)
+  const [editForm, setEditForm] = useState(emptyEditForm)
+  const [guardandoEdit, setGuardandoEdit] = useState(false)
+  const [errorEdit, setErrorEdit] = useState<string | null>(null)
+
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
 
   async function cargar() {
     const { data } = await supabase
@@ -175,6 +199,82 @@ export default function CalendarioPage() {
     window.open(`https://wa.me/${num}`, '_blank', 'noopener,noreferrer')
   }
 
+  function cerrarModal() {
+    setModalAct(null)
+    setEditando(false)
+    setConfirmandoEliminar(false)
+    setErrorEdit(null)
+    setErrorEliminar(null)
+  }
+
+  function abrirEdicion() {
+    if (!modalAct) return
+    setEditForm({
+      fecha: modalAct.fecha,
+      actividad: modalAct.actividad,
+      nombre: modalAct.nombre,
+      hotel: modalAct.hotel || '',
+      telefono: modalAct.telefono || '',
+      pax_mayor: String(modalAct.pax_mayor),
+      pax_menor: String(modalAct.pax_menor),
+      pax_infante: String(modalAct.pax_infante),
+      pax_jubilado: String(modalAct.pax_jubilado),
+      cobro: String(modalAct.cobro),
+      costo: String(modalAct.costo),
+      proveedor: modalAct.proveedor || '',
+      referido: modalAct.referido || '',
+    })
+    setErrorEdit(null)
+    setEditando(true)
+  }
+
+  async function guardarEdicion(e: React.FormEvent) {
+    e.preventDefault()
+    if (!modalAct || !editForm.actividad || !editForm.nombre || !editForm.fecha) return
+    setGuardandoEdit(true)
+    setErrorEdit(null)
+    const paxMayor = Number(editForm.pax_mayor) || 0
+    const paxMenor = Number(editForm.pax_menor) || 0
+    const paxInfante = Number(editForm.pax_infante) || 0
+    const paxJubilado = Number(editForm.pax_jubilado) || 0
+    const cobro = Number(editForm.cobro) || 0
+    const costo = Number(editForm.costo) || 0
+    const cambios = {
+      fecha: editForm.fecha,
+      actividad: editForm.actividad,
+      nombre: editForm.nombre,
+      hotel: editForm.hotel || null,
+      telefono: editForm.telefono || null,
+      pax_mayor: paxMayor,
+      pax_menor: paxMenor,
+      pax_infante: paxInfante,
+      pax_jubilado: paxJubilado,
+      pax_total: paxMayor + paxMenor + paxInfante + paxJubilado,
+      cobro,
+      costo,
+      ganancia: cobro - costo,
+      proveedor: editForm.proveedor || null,
+      referido: editForm.referido || null,
+    }
+    const { error } = await supabase.from('actividades').update(cambios).eq('id', modalAct.id)
+    setGuardandoEdit(false)
+    if (error) { setErrorEdit('No se pudieron guardar los cambios. Probá de nuevo.'); return }
+    setModalAct({ ...modalAct, ...cambios })
+    setEditando(false)
+    cargar()
+  }
+
+  async function confirmarEliminar() {
+    if (!modalAct) return
+    setEliminando(true)
+    setErrorEliminar(null)
+    const { error } = await supabase.from('actividades').delete().eq('id', modalAct.id)
+    setEliminando(false)
+    if (error) { setErrorEliminar('No se pudo eliminar. Probá de nuevo.'); return }
+    cerrarModal()
+    cargar()
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-gray-400">
       <RefreshCw size={24} className="animate-spin mr-2" /> Cargando...
@@ -185,25 +285,25 @@ export default function CalendarioPage() {
     <div className="p-4 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-[#18181A]">Calendario</h1>
-        <button onClick={refrescar} className="p-2 rounded-lg bg-white border border-[#E2DFD8] text-gray-500">
-          <RefreshCw size={16} />
+        <h1 className="text-[22px] font-bold text-[#18181A]">Calendario</h1>
+        <button onClick={refrescar} className="w-[34px] h-[34px] rounded-full bg-white border border-[#E2DFD8] text-gray-500 flex items-center justify-center">
+          <RefreshCw size={15} />
         </button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="bg-white rounded-xl p-3 border border-[#E2DFD8]">
-          <div className="text-xs text-gray-400 mb-1">Actividades</div>
-          <div className="text-lg font-semibold">{actividadesVista.length}</div>
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 bg-white rounded-[14px] p-2.5 border border-[#E2DFD8]">
+          <div className="text-[11px] text-[#8A8578] mb-1">Actividades</div>
+          <div className="text-[17px] font-bold text-[#18181A]">{actividadesVista.length}</div>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-[#E2DFD8]">
-          <div className="text-xs text-gray-400 mb-1">Cobrado</div>
-          <div className="text-sm font-semibold text-amber-600">{formatCurrency(totalCobrado)}</div>
+        <div className="flex-1 bg-white rounded-[14px] p-2.5 border border-[#E2DFD8]">
+          <div className="text-[11px] text-[#8A8578] mb-1">Cobrado</div>
+          <div className="text-[17px] font-bold" style={{ color: '#B5651D' }}>{formatCurrency(totalCobrado)}</div>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-[#E2DFD8]">
-          <div className="text-xs text-gray-400 mb-1">Ganancia</div>
-          <div className="text-sm font-semibold text-green-600">{formatCurrency(totalGanancia)}</div>
+        <div className="flex-1 bg-white rounded-[14px] p-2.5 border border-[#E2DFD8]">
+          <div className="text-[11px] text-[#8A8578] mb-1">Ganancia</div>
+          <div className="text-[17px] font-bold" style={{ color: '#2F6B3C' }}>{formatCurrency(totalGanancia)}</div>
         </div>
       </div>
 
@@ -243,7 +343,10 @@ export default function CalendarioPage() {
           </button>
           <div className="text-base font-semibold text-[#18181A] capitalize">{labelRango}</div>
           <div className="flex items-center gap-2">
-            <button onClick={irAHoyDesktop} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
+            <button
+              onClick={irAHoyDesktop}
+              className="px-3 py-1 rounded-full border-[1.5px] border-[#18181A] text-[#18181A] text-xs font-bold"
+            >
               Hoy
             </button>
             <button onClick={irSiguiente} className="p-2 rounded-lg text-gray-500 hover:bg-[#F0EEE9]">
@@ -343,32 +446,32 @@ export default function CalendarioPage() {
 
       {/* ══ Vista mobile: navegación por día ══ */}
       <div className="sm:hidden">
-        <div className="flex items-center justify-between mb-3 bg-white rounded-xl border border-[#E2DFD8] px-3 py-2.5">
+        <div className="flex items-center justify-between mb-3.5 px-1">
           <button
             onClick={() => setDiaIdx(Math.max(0, diaIdx - 1))}
             disabled={diaIdx === 0}
-            className="p-2 rounded-lg disabled:opacity-30 text-gray-500 bg-[#F0EEE9]"
+            className="w-8 h-8 rounded-full disabled:opacity-30 text-gray-500 bg-white border border-[#E2DFD8] flex items-center justify-center"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </button>
-          <div className="text-center">
-            <div className="text-sm font-semibold text-[#18181A] capitalize">
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold text-[#18181A] capitalize">
               {diaActual ? formatDate(diaActual[0]) : ''}
             </div>
-            <div className="text-xs text-gray-400">{diasConActs.length ? diaIdx + 1 : 0} de {diasConActs.length} días</div>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={irAHoy} className="px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
+            <button
+              onClick={irAHoy}
+              className="mt-0.5 px-2 py-0.5 rounded-full border-[1.5px] border-[#18181A] text-[11px] font-bold text-[#18181A]"
+            >
               Hoy
             </button>
-            <button
-              onClick={() => setDiaIdx(Math.min(diasConActs.length - 1, diaIdx + 1))}
-              disabled={diaIdx === diasConActs.length - 1}
-              className="p-2 rounded-lg disabled:opacity-30 text-gray-500 bg-[#F0EEE9]"
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
+          <button
+            onClick={() => setDiaIdx(Math.min(diasConActs.length - 1, diaIdx + 1))}
+            disabled={diaIdx === diasConActs.length - 1}
+            className="w-8 h-8 rounded-full disabled:opacity-30 text-gray-500 bg-white border border-[#E2DFD8] flex items-center justify-center"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
 
         {diasConActs.length === 0 ? (
@@ -378,7 +481,7 @@ export default function CalendarioPage() {
           </div>
         ) : (
           <div
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2.5"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
@@ -386,34 +489,19 @@ export default function CalendarioPage() {
               <div
                 key={act.id}
                 onClick={() => setModalAct(act)}
-                className="bg-white rounded-xl border border-[#E2DFD8] p-4 text-left w-full hover:border-amber-300 transition-colors cursor-pointer"
+                className="rounded-2xl p-4 cursor-pointer min-h-[76px] flex flex-col justify-center gap-1"
+                style={{ background: '#FFDE7E' }}
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="font-semibold text-[#18181A] text-sm leading-tight">{act.actividad}</span>
-                  <Badge variant="secondary" className="text-xs shrink-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-bold text-[16px] leading-tight text-[#18181A]">{act.actividad}</span>
+                  <span
+                    className="text-xs font-bold text-[#18181A] rounded-full px-2 py-0.5 shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.55)' }}
+                  >
                     {act.pax_total} pax
-                  </Badge>
+                  </span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
-                  <Users size={12} />
-                  <span>{act.nombre}</span>
-                  {act.hotel && <><span className="text-gray-300">·</span><MapPin size={12} /><span>{act.hotel}</span></>}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                    <TrendingUp size={12} />
-                    {formatCurrency(act.ganancia)} ganancia
-                  </div>
-                  {act.telefono && (
-                    <div
-                      role="button"
-                      onClick={e => { e.stopPropagation(); abrirWA(act.telefono) }}
-                      className="text-xs text-amber-600 flex items-center gap-1 cursor-pointer"
-                    >
-                      <Phone size={12} /> WhatsApp
-                    </div>
-                  )}
-                </div>
+                <div className="text-[13px]" style={{ color: '#5b5647' }}>{act.nombre}</div>
               </div>
             ))}
           </div>
@@ -421,72 +509,178 @@ export default function CalendarioPage() {
       </div>
 
       {/* Modal detalle */}
-      <BottomSheet open={!!modalAct} onClose={() => setModalAct(null)} desktopCenter className="max-h-[85vh]">
+      <BottomSheet
+        open={!!modalAct}
+        onClose={cerrarModal}
+        desktopCenter
+        className="max-h-[85vh] rounded-t-[24px] sm:rounded-[24px] p-5 pb-7"
+      >
         {modalAct && (
-          <>
-            <h2 className="text-lg font-semibold mb-1">{modalAct.actividad}</h2>
-            <p className="text-sm text-gray-400 mb-4 capitalize">{formatDate(modalAct.fecha)}</p>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              {[
-                { label: 'Cliente', value: modalAct.nombre },
-                { label: 'Hotel', value: modalAct.hotel || '—' },
-                { label: 'Proveedor', value: modalAct.proveedor || '—' },
-                { label: 'Referido', value: modalAct.referido || '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-[#F0EEE9] rounded-xl p-3">
-                  <div className="text-xs text-gray-400 mb-1">{label}</div>
-                  <div className="text-sm font-medium">{value}</div>
+          editando ? (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Editar actividad</h2>
+                <button onClick={() => setEditando(false)}><X size={20} className="text-gray-400" /></button>
+              </div>
+              <ErrorBanner message={errorEdit} />
+              <form onSubmit={guardarEdicion} className="flex flex-col gap-3">
+                <Campo label="Actividad">
+                  <Input required value={editForm.actividad} onChange={e => setEditForm({ ...editForm, actividad: e.target.value })} />
+                </Campo>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo label="Cliente">
+                    <Input required value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
+                  </Campo>
+                  <Campo label="Fecha">
+                    <Input required type="date" value={editForm.fecha} onChange={e => setEditForm({ ...editForm, fecha: e.target.value })} />
+                  </Campo>
                 </div>
-              ))}
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo label="Hotel">
+                    <Input value={editForm.hotel} onChange={e => setEditForm({ ...editForm, hotel: e.target.value })} />
+                  </Campo>
+                  <Campo label="Teléfono">
+                    <Input value={editForm.telefono} onChange={e => setEditForm({ ...editForm, telefono: e.target.value })} />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <Campo label="Adultos">
+                    <Input type="number" min="0" value={editForm.pax_mayor} onChange={e => setEditForm({ ...editForm, pax_mayor: e.target.value })} />
+                  </Campo>
+                  <Campo label="Menores">
+                    <Input type="number" min="0" value={editForm.pax_menor} onChange={e => setEditForm({ ...editForm, pax_menor: e.target.value })} />
+                  </Campo>
+                  <Campo label="Infantes">
+                    <Input type="number" min="0" value={editForm.pax_infante} onChange={e => setEditForm({ ...editForm, pax_infante: e.target.value })} />
+                  </Campo>
+                  <Campo label="Jubilados">
+                    <Input type="number" min="0" value={editForm.pax_jubilado} onChange={e => setEditForm({ ...editForm, pax_jubilado: e.target.value })} />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo label="Cobro">
+                    <Input type="number" min="0" step="0.01" value={editForm.cobro} onChange={e => setEditForm({ ...editForm, cobro: e.target.value })} />
+                  </Campo>
+                  <Campo label="Costo">
+                    <Input type="number" min="0" step="0.01" value={editForm.costo} onChange={e => setEditForm({ ...editForm, costo: e.target.value })} />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo label="Proveedor">
+                    <Input value={editForm.proveedor} onChange={e => setEditForm({ ...editForm, proveedor: e.target.value })} />
+                  </Campo>
+                  <Campo label="Referido">
+                    <Input value={editForm.referido} onChange={e => setEditForm({ ...editForm, referido: e.target.value })} />
+                  </Campo>
+                </div>
+                <div className="flex gap-2.5 mt-1">
+                  <button type="button" onClick={() => setEditando(false)} className="flex-1 bg-[#F0EEE9] rounded-[14px] py-3.5 text-[15px] font-bold">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={guardandoEdit} className="flex-1 bg-[#18181A] text-white rounded-[14px] py-3.5 text-[15px] font-bold disabled:opacity-50">
+                    {guardandoEdit ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-bold leading-tight">{modalAct.actividad}</h2>
+                  <p className="text-[13px] mt-0.5 capitalize" style={{ color: '#8A8578' }}>{formatDate(modalAct.fecha)}</p>
+                </div>
+                <button
+                  onClick={cerrarModal}
+                  className="w-[30px] h-[30px] rounded-full bg-[#F0EEE9] flex items-center justify-center shrink-0 ml-3"
+                >
+                  <X size={15} />
+                </button>
+              </div>
 
-            <div className="bg-[#F0EEE9] rounded-xl p-3 mb-4">
-              <div className="text-xs text-gray-400 mb-2">Pasajeros · {modalAct.pax_total} total</div>
-              <div className="grid grid-cols-4 gap-2 text-center">
+              <ErrorBanner message={errorEliminar} />
+
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="rounded-xl p-2.5" style={{ background: '#FDF1DC' }}>
+                  <div className="text-[11px]" style={{ color: '#9c7a2f' }}>Cobrado</div>
+                  <div className="text-base font-bold" style={{ color: '#B5651D' }}>{formatCurrency(modalAct.cobro)}</div>
+                </div>
+                <div className="rounded-xl p-2.5" style={{ background: '#FBEAE7' }}>
+                  <div className="text-[11px]" style={{ color: '#a34b3f' }}>Costo</div>
+                  <div className="text-base font-bold" style={{ color: '#B23A2E' }}>{formatCurrency(modalAct.costo)}</div>
+                </div>
+                <div className="rounded-xl p-2.5" style={{ background: '#E9F3EA' }}>
+                  <div className="text-[11px]" style={{ color: '#3f7a49' }}>Ganancia</div>
+                  <div className="text-base font-bold" style={{ color: '#2F6B3C' }}>{formatCurrency(modalAct.ganancia)}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-col mt-4">
                 {[
-                  { l: 'Adultos', v: modalAct.pax_mayor },
-                  { l: 'Menores', v: modalAct.pax_menor },
-                  { l: 'Infantes', v: modalAct.pax_infante },
-                  { l: 'Jubilados', v: modalAct.pax_jubilado },
-                ].map(({ l, v }) => (
-                  <div key={l}>
-                    <div className="text-lg font-semibold">{v}</div>
-                    <div className="text-xs text-gray-400">{l}</div>
+                  { label: 'Cliente', value: modalAct.nombre },
+                  { label: 'Hotel', value: modalAct.hotel || '—' },
+                  { label: 'Proveedor', value: modalAct.proveedor || '—' },
+                  { label: 'Referido', value: modalAct.referido || '—' },
+                  { label: 'Pasajeros', value: formatPax(modalAct) },
+                ].map(({ label, value }, i, arr) => (
+                  <div
+                    key={label}
+                    className={cn('flex items-start justify-between gap-3 py-2.5', i < arr.length - 1 && 'border-b border-[#E2DFD8]')}
+                  >
+                    <span className="text-[13px] shrink-0" style={{ color: '#8A8578' }}>{label}</span>
+                    <span className="text-sm font-semibold text-right">{value}</span>
                   </div>
                 ))}
               </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-amber-50 rounded-xl p-3">
-                <div className="text-xs text-amber-500 mb-1">Cobrado</div>
-                <div className="text-base font-semibold text-amber-600">{formatCurrency(modalAct.cobro)}</div>
-              </div>
-              <div className="bg-red-50 rounded-xl p-3">
-                <div className="text-xs text-red-400 mb-1">Costo</div>
-                <div className="text-base font-semibold text-red-500">{formatCurrency(modalAct.costo)}</div>
-              </div>
-              <div className="bg-green-50 rounded-xl p-3">
-                <div className="text-xs text-green-500 mb-1">Ganancia</div>
-                <div className="text-base font-semibold text-green-600">
-                  {formatCurrency(modalAct.ganancia)}
-                  <span className="text-xs font-normal ml-1">
-                    ({modalAct.cobro ? Math.round((modalAct.ganancia / modalAct.cobro) * 100) : 0}%)
-                  </span>
+              {modalAct.telefono && (
+                <button
+                  onClick={() => abrirWA(modalAct.telefono)}
+                  className="w-full bg-green-500 text-white rounded-xl py-3 font-semibold flex items-center justify-center gap-2 mt-4"
+                >
+                  <Phone size={16} /> WhatsApp — {modalAct.nombre}
+                </button>
+              )}
+
+              {confirmandoEliminar ? (
+                <div className="mt-5">
+                  <p className="text-sm text-center text-gray-500 mb-3">¿Eliminar esta actividad? No se puede deshacer.</p>
+                  <div className="flex gap-2.5">
+                    <button
+                      onClick={() => setConfirmandoEliminar(false)}
+                      className="flex-1 bg-[#F0EEE9] rounded-[14px] py-3.5 text-[15px] font-bold"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmarEliminar}
+                      disabled={eliminando}
+                      className="flex-1 text-white rounded-[14px] py-3.5 text-[15px] font-bold disabled:opacity-50"
+                      style={{ background: '#B23A2E' }}
+                    >
+                      {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {modalAct.telefono && (
-              <button
-                onClick={() => abrirWA(modalAct.telefono)}
-                className="w-full bg-green-500 text-white rounded-xl py-3 font-semibold flex items-center justify-center gap-2"
-              >
-                <Phone size={16} /> WhatsApp — {modalAct.nombre}
-              </button>
-            )}
-          </>
+              ) : (
+                <div className="flex gap-2.5 mt-5">
+                  <button
+                    onClick={abrirEdicion}
+                    className="flex-1 bg-[#18181A] text-white rounded-[14px] py-3.5 text-[15px] font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Pencil size={14} /> Editar
+                  </button>
+                  <button
+                    onClick={() => setConfirmandoEliminar(true)}
+                    className="flex-1 bg-[#F0EEE9] rounded-[14px] py-3.5 text-[15px] font-bold flex items-center justify-center gap-1.5"
+                    style={{ color: '#B23A2E' }}
+                  >
+                    <Trash2 size={14} /> Eliminar
+                  </button>
+                </div>
+              )}
+            </>
+          )
         )}
       </BottomSheet>
     </div>

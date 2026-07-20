@@ -5,7 +5,7 @@ import { formatCurrency, getMargen } from '@/lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { TrendingUp, DollarSign, Users, Percent, Activity, RefreshCw } from 'lucide-react'
 
-const COLORS = ['#D97706','#1A6E3F','#8A5400','#5B3FBF','#B84040','#2E86AB']
+const COLORS = ['#7A4600','#9C6B1F','#B5651D','#D97706','#E8A33D','#F0C674']
 const MESES_LABELS: Record<string,string> = {
   '06':'Jun','07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic',
   '01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May',
@@ -109,10 +109,10 @@ export default function DashboardPage() {
         {[
           { label:'Cobrado', value: formatCurrency(totalCobrado), icon: DollarSign, color:'text-amber-600', bg:'bg-amber-50' },
           { label:'Ganancia', value: formatCurrency(totalGanancia), icon: TrendingUp, color:'text-green-600', bg:'bg-green-50' },
-          { label:'Actividades', value: filtradas.length.toString(), icon: Activity, color:'text-purple-600', bg:'bg-purple-50' },
+          { label:'Actividades', value: filtradas.length.toString(), icon: Activity, color:'text-[#18181A]', bg:'bg-[#F0EEE9]' },
           { label:'Margen', value: `${margen}%`, icon: Percent, color:'text-amber-600', bg:'bg-amber-50' },
           { label:'Costo total', value: formatCurrency(totalCosto), icon: DollarSign, color:'text-red-500', bg:'bg-red-50' },
-          { label:'Clientes únicos', value: clientesUnicos.toString(), icon: Users, color:'text-indigo-600', bg:'bg-indigo-50' },
+          { label:'Clientes únicos', value: clientesUnicos.toString(), icon: Users, color:'text-[#18181A]', bg:'bg-[#F0EEE9]' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-white rounded-xl border border-[#E2DFD8] p-4 flex items-center gap-3">
             <div className={`p-2 rounded-lg ${bg}`}>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
               <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}
                 tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Bar dataKey="ganancia" fill="#D97706" radius={[4,4,0,0]} />
+              <Bar dataKey="ganancia" fill="#D97706" radius={[4,4,0,0]} minPointSize={3} />
             </BarChart>
           </ResponsiveContainer>
         </div>
