@@ -29,6 +29,7 @@ export default function BottomSheet({
       >
         <div className={cn('w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5', desktopCenter && 'sm:hidden')} />
         {children}
+        <div style={{ height: 'env(safe-area-inset-bottom)' }} />
       </div>
     </div>
   )

@@ -20,19 +20,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <PasswordGate>
       <div className="min-h-screen flex flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-[#18181A] text-white px-4 py-3 flex items-center gap-2 border-b-2 border-primary">
+        <header
+          className="sticky top-0 z-40 bg-[#18181A] text-white px-4 py-3 flex items-center gap-2 border-b-2 border-primary"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/ayq-icon.png" alt="Adonde y Que" className="w-6 h-6 rounded-full" />
           <span className="font-semibold text-sm tracking-wide">Adonde y Que</span>
         </header>
 
         {/* Content */}
-        <main className="flex-1 pb-20">
+        <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
           {children}
         </main>
 
         {/* Bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2DFD8] px-2 py-2 flex justify-around">
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2DFD8] px-2 py-2 flex justify-around"
+          style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+        >
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href)
             return (
